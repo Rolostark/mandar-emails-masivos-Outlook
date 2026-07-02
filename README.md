@@ -1,3 +1,9 @@
+Para iniciar la app es nescesario
+
+```
+npm start
+```
+
 MailMerge StudioEste es un sistema diseñado para el envío seguro de correspondencia masiva desde Excel usando Outlook Local. El proyecto destaca por su enfoque en la privacidad y la protección de datos, ya que realiza el procesamiento de forma 100% segura en el navegador del usuario, eliminando la necesidad de servidores externos.  
 
 🚀 CaracterísticasCarga de Contactos Intuitiva: Interfaz que permite al usuario arrastrar su archivo de Excel o hacer clic para buscarlo de forma sencilla.  Procesamiento Local Seguro: Todo el manejo de datos se realiza en tu navegador web sin servidores de por medio, garantizando máxima seguridad de la información.  Diseño de Comunicados: Herramientas integradas en el flujo para redactar y estructurar el mensaje que se va a enviar.  Generador de Scripts: Capacidad para crear el script necesario que conecta la información web con el cliente de correo de escritorio.  
