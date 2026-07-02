@@ -1,0 +1,10 @@
+{
+  "name": "mailmerge-studio-local",
+  "version": "1.0.0",
+  "description": "Servidor local para MailMerge Studio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}

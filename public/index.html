@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MailMerge Studio - Envío Masivo Seguro</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- CDN para SheetJS (Lectura de Excel) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --accent: #06b6d4;
+            --accent-glow: rgba(6, 182, 212, 0.15);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.08) 0px, transparent 50%);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Contenedor Principal */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Cabecera Premium */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .logo-title h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-title p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .badge-local {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            padding: 0.4rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge-local::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /* Grid de Pasos / Tabs */
+        .steps-nav {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .step-tab {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 1.25rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-tab:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .step-tab.active {
+            background: rgba(99, 102, 241, 0.05);
+            border-color: var(--primary);
+            box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.05);
+        }
+
+        .step-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+        }
+
+        .step-num {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary);
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Paneles de Contenido */
+        .panel {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tarjeta Principal */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 2rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Zona de Carga de Archivos (Drag & Drop) */
+        .dropzone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.01);
+            margin-bottom: 2rem;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.03);
+        }
+
+        .dropzone-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .dropzone:hover .dropzone-icon {
+            transform: scale(1.1);
+            background: var(--primary-glow);
+        }
+
+        .dropzone-icon svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--text-secondary);
+            transition: fill 0.3s ease;
+        }
+
+        .dropzone:hover .dropzone-icon svg {
+            fill: var(--primary);
+        }
+
+        .dropzone-text h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dropzone-text p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Estado del Archivo Cargado */
+        .file-status {
+            display: none;
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .file-status-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .file-status-icon {
+            background: var(--primary-glow);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-status-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--primary);
+        }
+
+        .file-status-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .file-status-details {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-change-file {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-change-file:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Configuración de Columnas */
+        .mapping-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .select-custom, .input-custom, .textarea-custom {
+            background: #111827;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            padding: 0.8rem 1rem;
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .select-custom:focus, .input-custom:focus, .textarea-custom:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        /* Tabla de Vista Previa de Datos */
+        .table-container {
+            margin-top: 1.5rem;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+            padding: 0.85rem 1rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            padding: 0.85rem 1rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Editor de Correo (Dos Columnas) */
+        .editor-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+            gap: 2rem;
+        }
+
+        .editor-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .variables-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            align-items: center;
+        }
+
+        .variables-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-right: 0.5rem;
+        }
+
+        .var-badge {
+            background: var(--primary-glow);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .var-badge:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .textarea-custom {
+            resize: vertical;
+            min-height: 300px;
+            font-family: var(--font-main);
+        }
+
+        /* Mockup de Cliente de Correo (Vista Previa Real) */
+        .preview-pane {
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            background: #111827;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.2);
+            height: fit-content;
+        }
+
+        .preview-header {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .preview-header-row {
+            display: flex;
+            font-size: 0.85rem;
+        }
+
+        .preview-header-label {
+            color: var(--text-secondary);
+            width: 70px;
+            flex-shrink: 0;
+        }
+
+        .preview-header-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .preview-body-container {
+            padding: 1.5rem;
+            background: #ffffff;
+            color: #1f2937;
+            min-height: 350px;
+            max-height: 450px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+        }
+
+        .preview-body-container a {
+            color: var(--primary);
+        }
+
+        .preview-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid var(--card-border);
+        }
+
+        .preview-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-nav:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-nav:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .preview-page-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Panel de Generación de Script */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+            gap: 2rem;
+        }
+
+        .alert-card {
+            background: rgba(245, 158, 11, 0.04);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-card-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--warning);
+        }
+
+        .alert-card-content h4 {
+            color: var(--warning);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .alert-card-content p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .toggle-group {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .toggle-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toggle-info h5 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.15rem;
+        }
+
+        .toggle-info p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Switch UI */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid var(--card-border);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Código Generado Panel */
+        .code-output-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-pre-wrapper {
+            background: #090d16;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            overflow: auto;
+            max-height: 400px;
+            position: relative;
+        }
+
+        .code-pre-wrapper pre {
+            margin: 0;
+        }
+
+        pre code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        /* Botón Premium */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 0.85rem 1.75rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 0.85rem 1.75rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Alertas Flotantes */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #111827;
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            color: var(--text-primary);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Instrucciones de Ejecución */
+        .instructions-list {
+            margin-top: 1rem;
+            padding-left: 1.25rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .instructions-list li strong {
+            color: var(--text-primary);
+        }
+
+        /* Consultas responsivas para evitar desalineación */
+        @media (max-width: 1024px) {
+            .editor-grid, .settings-grid, .mapping-section {
+                grid-template-columns: 1fr;
+            }
+            .preview-pane {
+                margin-top: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Cabecera -->
+        <header>
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                </div>
+                <div class="logo-title">
+                    <h1>MailMerge Studio</h1>
+                    <p>Envío seguro de correspondencia desde Excel usando Outlook Local</p>
+                </div>
+            </div>
+            <div class="badge-local">
+                Procesamiento Local Seguro (Sin servidores)
+            </div>
+        </header>
+
+        <!-- Navegación de Pasos -->
+        <div class="steps-nav">
+            <button class="step-tab active" id="tab-step1" onclick="switchTab(1)">
+                <div class="step-num">Paso 1</div>
+                <div class="step-title">Cargar Lista Excel</div>
+            </button>
+            <button class="step-tab btn-disabled" id="tab-step2" onclick="switchTab(2)">
+                <div class="step-num">Paso 2</div>
+                <div class="step-title">Diseñar Comunicado</div>
+            </button>
+            <button class="step-tab btn-disabled" id="tab-step3" onclick="switchTab(3)">
+                <div class="step-num">Paso 3</div>
+                <div class="step-title">Generar Script</div>
+            </button>
+        </div>
+
+        <!-- PASO 1: CARGAR ARCHIVO -->
+        <div class="panel active" id="panel-step1">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Selecciona tu archivo de contactos</h2>
+                    <p class="card-subtitle">Sube tu archivo de Excel (.xlsx, .xls) o CSV. Todo se procesa de forma 100% segura en tu navegador.</p>
+                </div>
+
+                <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileSelect(event)">
+                    <div class="dropzone-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                        </svg>
+                    </div>
+                    <div class="dropzone-text">
+                        <h3>Arrastra aquí tu archivo de Excel o haz clic para buscar</h3>
+                        <p>Formatos soportados: Excel (.xlsx, .xls) y CSV</p>
+                    </div>
+                </div>
+
+                <!-- Estado del archivo cargado -->
+                <div class="file-status" id="fileStatus">
+                    <div class="file-status-info">
+                        <div class="file-status-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="file-status-name" id="fileName">contactos.xlsx</div>
+                            <div class="file-status-details" id="fileDetails">Cargando 0 filas encontradas</div>
+                        </div>
+                    </div>
+                    <button class="btn-change-file" onclick="resetFile()">Cambiar archivo</button>
+                </div>
+
+                <!-- Mapeo de Columnas (se muestra tras cargar) -->
+                <div id="mappingSection" style="display: none;">
+                    <div class="card-header" style="margin-top: 1.5rem;">
+                        <h3 class="card-title">Mapear Datos de Excel</h3>
+                        <p class="card-subtitle">Asigna las columnas de tu Excel a los campos requeridos para enviar el correo.</p>
+                    </div>
+                    <div class="mapping-section">
+                        <div class="form-group">
+                            <label for="colEmail">Columna del Correo Electrónico (Requerido)</label>
+                            <select id="colEmail" class="select-custom" onchange="updateMapping()"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="colName">Columna del Nombre (Recomendado para saludar)</label>
+                            <select id="colName" class="select-custom" onchange="updateMapping()"></select>
+                        </div>
+                    </div>
+
+                    <!-- Vista previa de los datos en tabla -->
+                    <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; font-weight: 600;">Muestra de datos (Primeras 5 filas):</h4>
+                    <div class="table-container">
+                        <table id="previewTable">
+                            <thead>
+                                <tr id="previewTableHead"></tr>
+                            </thead>
+                            <tbody id="previewTableBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                        <button class="btn-primary" onclick="goToStep(2)">
+                            Continuar a Redacción
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 2: REDACTAR -->
+        <div class="panel" id="panel-step2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Diseña el Comunicado</h2>
+                    <p class="card-subtitle">Puedes usar variables de tu archivo Excel. Haz clic en las etiquetas de abajo para insertarlas en el asunto o cuerpo.</p>
+                </div>
+
+                <div class="editor-grid">
+                    
+                    <!-- Editor Izquierda -->
+                    <div class="editor-pane">
+                        
+                        <div class="form-group">
+                            <label for="emailSubject">Asunto del Correo</label>
+                            <input type="text" id="emailSubject" class="input-custom" placeholder="Ingresa el asunto del correo..." value="Comunicado importante para {{Nombre}}" oninput="updateLivePreview()">
+                        </div>
+
+                        <!-- Panel de variables dinámicas -->
+                        <div class="variables-container">
+                            <span class="variables-label">Variables disponibles:</span>
+                            <div id="variablesList" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <!-- Se llenan dinámicamente -->
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="emailBody">Cuerpo del Correo (Formato HTML soportado)</label>
+                            <textarea id="emailBody" class="textarea-custom" placeholder="Hola {{Nombre}},&#10;&#10;Escribe tu mensaje aquí. Puedes usar etiquetas HTML como <p>, <strong>, <ul> o <br> para dar formato..." oninput="updateLivePreview()">Hola {{Nombre}},
+
+Nos ponemos en contacto contigo para informarte sobre el nuevo comunicado de la empresa.
+
+Atentamente,
+El Equipo de Dirección</textarea>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-top: 1rem;">
+                            <button class="btn-secondary" onclick="goToStep(1)">Volver</button>
+                            <button class="btn-primary" onclick="goToStep(3)">
+                                Continuar a Generación
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vista Previa Derecha (Cliente de Correo Simulado) -->
+                    <div class="preview-pane">
+                        <div class="preview-header">
+                            <div class="preview-header-row">
+                                <span class="preview-header-label">De:</span>
+                                <span class="preview-header-value">Tu cuenta de Outlook local</span>
+                            </div>
+                            <div class="preview-header-row">
+                                <span class="preview-header-label">Para:</span>
+                                <span class="preview-header-value" id="previewTo">cargando...</span>
+                            </div>
+                            <div class="preview-header-row">
+                                <span class="preview-header-label">Asunto:</span>
+                                <span class="preview-header-value" id="previewSubject" style="font-weight: 600; color: #cbd5e1;">Cargando...</span>
+                            </div>
+                        </div>
+                        
+                        <div class="preview-body-container" id="previewBody">
+                            <!-- El HTML renderizado aparecerá aquí -->
+                        </div>
+
+                        <div class="preview-controls">
+                            <span class="preview-page-info" id="previewIndexInfo">Visualizando contacto 1 de 100</span>
+                            <div class="preview-nav">
+                                <button class="btn-nav" id="btnPrevPreview" onclick="navigatePreview(-1)" disabled>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                                </button>
+                                <button class="btn-nav" id="btnNextPreview" onclick="navigatePreview(1)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 3: EXPORTAR -->
+        <div class="panel" id="panel-step3">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Parámetros de Envío y Script final</h2>
+                    <p class="card-subtitle">Configura los límites de seguridad y descarga el script para ejecutarlo en Windows con un clic.</p>
+                </div>
+
+                <div class="settings-grid">
+                    
+                    <!-- Ajustes de envío -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        
+                        <!-- Tarjeta de Servidor Local (Envío en 1 Clic) -->
+                        <div class="card" id="localServerCard" style="display: none; border-color: var(--primary); background: rgba(99, 102, 241, 0.03); padding: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; gap: 1rem;">
+                                <div>
+                                    <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                        Envío Automático en 1 Clic
+                                    </h3>
+                                    <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                                        El servidor local está activo. Puedes enviar los correos directamente a través de tu Outlook de escritorio sin descargar scripts ni abrir consolas.
+                                    </p>
+                                </div>
+                                <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success); padding: 0.3rem 0.6rem; border-radius: 30px; font-weight: 700; white-space: nowrap;">
+                                    CONECTADO
+                                </span>
+                            </div>
+                            
+                            <!-- Botón y barra de progreso -->
+                            <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.25rem;">
+                                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                    <button class="btn-primary" id="btnLocalSend" onclick="startLocalSending()" style="padding: 0.85rem 1.5rem; font-size: 0.95rem;">
+                                        🚀 Iniciar Envío Automático
+                                    </button>
+                                    <button class="btn-secondary" id="btnLocalCancel" onclick="cancelLocalSending()" style="display: none; padding: 0.85rem 1.5rem; font-size: 0.95rem; border-color: var(--danger); color: var(--danger); background: rgba(239, 68, 68, 0.05);">
+                                        Detener
+                                    </button>
+                                </div>
+                                
+                                <div id="localProgressContainer" style="display: none; margin-top: 0.5rem;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                                        <span id="localProgressText" style="font-weight: 600; color: var(--text-primary);">Preparando envío...</span>
+                                        <span id="localProgressStats" style="font-weight: 700; color: var(--primary);">0 / 0</span>
+                                    </div>
+                                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+                                        <div id="localProgressBar" style="width: 0%; height: 100%; background: linear-gradient(to right, var(--primary), var(--accent)); transition: width 0.3s;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Consola de salida de logs -->
+                            <div id="localConsole" style="display: none; margin-top: 1.25rem; background: #070a13; border: 1px solid var(--card-border); border-radius: 10px; padding: 0.85rem 1.25rem; font-family: var(--font-mono); font-size: 0.8rem; max-height: 180px; overflow-y: auto; color: #94a3b8; line-height: 1.5; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+                                <div style="color: var(--primary); margin-bottom: 0.4rem; font-weight: 600;">> Consola de envío iniciada...</div>
+                            </div>
+                        </div>
+
+                        <!-- Tarjeta de advertencia de límites -->
+                        <div class="alert-card">
+                            <div class="alert-card-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                </svg>
+                            </div>
+                            <div class="alert-card-content">
+                                <h4>Límites y Recomendaciones de Envío</h4>
+                                <p>Vas a procesar <span id="summaryTotalDest" style="font-weight: 700;">0</span> destinatarios. Microsoft 365 y la mayoría de servidores limitan los envíos por minuto para prevenir SPAM. Se ha añadido un retardo obligatorio entre correos en el script.</p>
+                            </div>
+                        </div>
+
+                        <!-- Ajustes rápidos -->
+                        <div class="toggle-group">
+                            <div class="toggle-item">
+                                <div class="toggle-info">
+                                    <h5>Modo Borrador Seguro</h5>
+                                    <p>Guarda los correos en la carpeta de borradores de Outlook en vez de enviarlos directamente. Ideal para revisar antes del envío final.</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="settingDraftMode" checked onchange="regenerateScript()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid var(--card-border);">
+
+                            <div class="form-group">
+                                <label for="settingDelay">Intervalo de Espera (segundos entre correos)</label>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <input type="number" id="settingDelay" class="input-custom" value="2" min="1" max="10" style="width: 80px;" onchange="regenerateScript()">
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Recomendado: 2-3 segundos para evitar que bloqueen tu dominio.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button class="btn-primary" style="flex: 1; padding: 1.1rem;" onclick="downloadPowerShellScript()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                                Descargar Script (.ps1)
+                            </button>
+                            <button class="btn-secondary" onclick="copyScriptCode()">Copiar Código</button>
+                        </div>
+
+                        <div class="card" style="background: rgba(255, 255, 255, 0.01); border-color: var(--card-border); padding: 1.25rem; margin-top: 0.5rem;">
+                            <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Instrucciones para Ejecutar en tu PC:</h4>
+                            <ol class="instructions-list">
+                                <li>Haz clic en **Descargar Script (.ps1)** y guárdalo en tu ordenador (ej. en el Escritorio).</li>
+                                <li>Asegúrate de tener la aplicación **Outlook de escritorio abierta** con la cuenta desde la que enviarás los correos.</li>
+                                <li>Haz **clic derecho** sobre el archivo `.ps1` descargado y selecciona **"Ejecutar con PowerShell"**.</li>
+                                <li>Una consola azul se abrirá. Te mostrará un resumen y te pedirá confirmar escribiendo **S** y presionando Enter para arrancar el envío automatizado.</li>
+                            </ol>
+                        </div>
+
+                        <div style="margin-top: 1rem;">
+                            <button class="btn-secondary" onclick="goToStep(2)">Volver a Editar</button>
+                        </div>
+                    </div>
+
+                    <!-- Código PowerShell Generado -->
+                    <div class="code-output-container">
+                        <div class="code-header">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Vista previa del código PowerShell generado</span>
+                            <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary);">UTF-8 con BOM</span>
+                        </div>
+                        <div class="code-pre-wrapper">
+                            <pre><code id="codeBlock"># Cargando script...</code></pre>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Mensaje flotante de guardado/copiado -->
+    <div class="toast" id="toast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3"/></svg>
+        <span id="toastText">Copiado al portapapeles</span>
+    </div>
+
+    <!-- Scripts de la Aplicación -->
+    <script>
+        // Variables globales
+        let excelData = [];
+        let columns = [];
+        let activeTabNum = 1;
+        let previewIndex = 0;
+
+        // Referencias de elementos DOM
+        const dropzone = document.getElementById('dropzone');
+        const fileStatus = document.getElementById('fileStatus');
+        const fileName = document.getElementById('fileName');
+        const fileDetails = document.getElementById('fileDetails');
+        const mappingSection = document.getElementById('mappingSection');
+        
+        const colEmail = document.getElementById('colEmail');
+        const colName = document.getElementById('colName');
+        const previewTableHead = document.getElementById('previewTableHead');
+        const previewTableBody = document.getElementById('previewTableBody');
+        
+        const variablesList = document.getElementById('variablesList');
+        const emailSubject = document.getElementById('emailSubject');
+        const emailBody = document.getElementById('emailBody');
+        
+        const previewTo = document.getElementById('previewTo');
+        const previewSubject = document.getElementById('previewSubject');
+        const previewBody = document.getElementById('previewBody');
+        const previewIndexInfo = document.getElementById('previewIndexInfo');
+        const btnPrevPreview = document.getElementById('btnPrevPreview');
+        const btnNextPreview = document.getElementById('btnNextPreview');
+
+        const summaryTotalDest = document.getElementById('summaryTotalDest');
+        const settingDraftMode = document.getElementById('settingDraftMode');
+        const settingDelay = document.getElementById('settingDelay');
+        const codeBlock = document.getElementById('codeBlock');
+
+        // Drag & Drop Handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length) {
+                handleFile(files[0]);
+            }
+        }
+
+        // Procesar archivo (Excel o CSV)
+        function handleFile(file) {
+            fileName.textContent = file.name;
+            fileStatus.style.display = 'flex';
+            dropzone.style.display = 'none';
+
+            const reader = new FileReader();
+            
+            if (file.name.endsWith('.csv')) {
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    parseCSV(text);
+                };
+                reader.readAsText(file, 'UTF-8');
+            } else {
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    try {
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        // Convertir a JSON
+                        const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+                        if (json.length === 0) {
+                            showToast('El archivo Excel está vacío', true);
+                            resetFile();
+                            return;
+                        }
+                        excelData = json;
+                        // Extraer cabeceras (keys del primer objeto)
+                        columns = Object.keys(excelData[0]);
+                        populateColumnSelectors();
+                        showToast('Archivo Excel importado con éxito');
+                    } catch (err) {
+                        console.error(err);
+                        showToast('Error al leer el archivo Excel', true);
+                        resetFile();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        // Parsea CSV de forma nativa como fallback robusto
+        function parseCSV(text) {
+            const lines = text.split(/\r?\n/);
+            if (lines.length < 2) {
+                showToast('Archivo CSV sin suficientes datos', true);
+                resetFile();
+                return;
+            }
+
+            // Detectar delimitador (coma o punto y coma)
+            const headerLine = lines[0];
+            let delimiter = ',';
+            if (headerLine.includes(';') && (headerLine.split(';').length > headerLine.split(',').length)) {
+                delimiter = ';';
+            }
+
+            // Parsear cabeceras
+            columns = headerLine.split(delimiter).map(c => c.replace(/^["']|["']$/g, '').trim());
+
+            excelData = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                // Simple división por comillas/delimitador
+                const values = lines[i].split(delimiter).map(v => v.replace(/^["']|["']$/g, '').trim());
+                const row = {};
+                columns.forEach((col, idx) => {
+                    row[col] = values[idx] || '';
+                });
+                excelData.push(row);
+            }
+
+            populateColumnSelectors();
+            showToast('Archivo CSV cargado con éxito');
+        }
+
+        function resetFile() {
+            excelData = [];
+            columns = [];
+            dropzone.style.display = 'block';
+            fileStatus.style.display = 'none';
+            mappingSection.style.display = 'none';
+            
+            // Bloquear pestañas siguientes
+            document.getElementById('tab-step2').classList.add('btn-disabled');
+            document.getElementById('tab-step3').classList.add('btn-disabled');
+        }
+
+        // Llenar selectores de mapeo de columnas
+        function populateColumnSelectors() {
+            fileDetails.textContent = `${excelData.length} registros cargados`;
+            
+            colEmail.innerHTML = '<option value="">-- Seleccionar columna --</option>';
+            colName.innerHTML = '<option value="">-- Ninguna (Escribir a mano) --</option>';
+
+            columns.forEach(col => {
+                const opt1 = document.createElement('option');
+                opt1.value = col;
+                opt1.textContent = col;
+                colEmail.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = col;
+                opt2.textContent = col;
+                colName.appendChild(opt2);
+            });
+
+            // Autodetectar columna de email y nombre por nombres comunes
+            const commonEmailHeaders = ['email', 'correo', 'mail', 'contacto', 'e-mail'];
+            const commonNameHeaders = ['nombre', 'name', 'nombre completo', 'destinatario', 'cliente', 'usuario'];
+
+            const matchedEmail = columns.find(c => commonEmailHeaders.includes(c.toLowerCase()));
+            const matchedName = columns.find(c => commonNameHeaders.includes(c.toLowerCase()));
+
+            if (matchedEmail) colEmail.value = matchedEmail;
+            if (matchedName) colName.value = matchedName;
+
+            updateMapping();
+            mappingSection.style.display = 'block';
+            
+            // Habilitar siguiente pestaña
+            document.getElementById('tab-step2').classList.remove('btn-disabled');
+        }
+
+        // Actualizar la tabla de muestra y mapear columnas
+        function updateMapping() {
+            if (!excelData.length) return;
+
+            // Limpiar tabla
+            previewTableHead.innerHTML = '';
+            previewTableBody.innerHTML = '';
+
+            // Cabeceras de tabla
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                
+                // Resaltar columnas mapeadas
+                if (col === colEmail.value) {
+                    th.style.borderBottom = '2px solid var(--primary)';
+                    th.textContent += ' (Email)';
+                } else if (col === colName.value) {
+                    th.style.borderBottom = '2px solid var(--accent)';
+                    th.textContent += ' (Nombre)';
+                }
+                
+                previewTableHead.appendChild(th);
+            });
+
+            // Filas (primeras 5)
+            const previewRows = excelData.slice(0, 5);
+            previewRows.forEach(row => {
+                const tr = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.textContent = row[col];
+                    tr.appendChild(td);
+                });
+                previewTableBody.appendChild(tr);
+            });
+
+            // Actualizar variables dinámicas disponibles
+            updateVariablesUI();
+        }
+
+        // Llenar la lista de insignias de variables disponibles
+        function updateVariablesUI() {
+            variablesList.innerHTML = '';
+            columns.forEach(col => {
+                const badge = document.createElement('span');
+                badge.className = 'var-badge';
+                badge.textContent = `{{${col}}}`;
+                badge.onclick = function() {
+                    insertAtCursor(emailBody, `{{${col}}}`);
+                };
+                variablesList.appendChild(badge);
+            });
+        }
+
+        // Insertar texto en un textarea en la posición del cursor
+        function insertAtCursor(myField, myValue) {
+            if (document.selection) {
+                myField.focus();
+                sel = document.selection.createRange();
+                sel.text = myValue;
+            } else if (myField.selectionStart || myField.selectionStart === 0) {
+                var startPos = myField.selectionStart;
+                var endPos = myField.selectionEnd;
+                myField.value = myField.value.substring(0, startPos) + myValue + myField.value.substring(endPos, myField.value.length);
+                myField.selectionStart = startPos + myValue.length;
+                myField.selectionEnd = startPos + myValue.length;
+            } else {
+                myField.value += myValue;
+            }
+            myField.focus();
+            updateLivePreview();
+        }
+
+        // Navegación de pestañas
+        function switchTab(num) {
+            // Verificar si el paso está desbloqueado
+            const tabBtn = document.getElementById(`tab-step${num}`);
+            if (tabBtn.classList.contains('btn-disabled')) return;
+
+            document.querySelectorAll('.step-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+
+            document.getElementById(`tab-step${num}`).classList.add('active');
+            document.getElementById(`panel-step${num}`).classList.add('active');
+            activeTabNum = num;
+
+            if (num === 2) {
+                previewIndex = 0;
+                updateLivePreview();
+            }
+
+            if (num === 3) {
+                summaryTotalDest.textContent = excelData.length;
+                regenerateScript();
+                document.getElementById('tab-step3').classList.remove('btn-disabled');
+            }
+        }
+
+        function goToStep(num) {
+            if (num === 2 && !colEmail.value) {
+                showToast('Por favor selecciona la columna de correo electrónico', true);
+                return;
+            }
+            document.getElementById(`tab-step${num}`).classList.remove('btn-disabled');
+            switchTab(num);
+        }
+
+        // Renderizado dinámico de la vista previa del correo
+        function updateLivePreview() {
+            if (!excelData.length || activeTabNum !== 2) return;
+
+            const row = excelData[previewIndex];
+            if (!row) return;
+
+            // Actualizar información del índice de contactos
+            previewIndexInfo.textContent = `Visualizando contacto ${previewIndex + 1} de ${excelData.length}`;
+            
+            // Botones de navegación
+            btnPrevPreview.disabled = previewIndex === 0;
+            btnNextPreview.disabled = previewIndex === excelData.length - 1;
+
+            // Mapear correo
+            const toEmail = row[colEmail.value] || 'sin_correo@dominio.com';
+            const mappedName = colName.value ? row[colName.value] : 'Destinatario';
+            previewTo.textContent = `${mappedName} <${toEmail}>`;
+
+            // Procesar plantilla
+            let subject = emailSubject.value;
+            let body = emailBody.value;
+
+            // Reemplazar todas las variables dinámicas
+            columns.forEach(col => {
+                const val = row[col] !== undefined ? row[col] : '';
+                const placeholder = new RegExp(`\\{\\{${col}\\}\\}`, 'g');
+                subject = subject.replace(placeholder, val);
+                body = body.replace(placeholder, val);
+            });
+
+            previewSubject.textContent = subject;
+
+            // Renderizar el cuerpo (si no contiene etiquetas HTML básicas, agregamos saltos de línea automáticos)
+            if (!body.includes('<p>') && !body.includes('<br>') && !body.includes('</div>')) {
+                body = body.replace(/\n/g, '<br>');
+            }
+            previewBody.innerHTML = body;
+        }
+
+        function navigatePreview(direction) {
+            const nextIndex = previewIndex + direction;
+            if (nextIndex >= 0 && nextIndex < excelData.length) {
+                previewIndex = nextIndex;
+                updateLivePreview();
+            }
+        }
+
+        // Generar script de PowerShell adaptado con los datos
+        function generatePowerShellCode() {
+            const subjectTemplate = emailSubject.value.replace(/'/g, "''"); // Escapar comillas en PS
+            let bodyTemplate = emailBody.value.replace(/'/g, "''");
+            
+            // Formatear cuerpo si no tiene saltos en HTML
+            if (!bodyTemplate.includes('<p>') && !bodyTemplate.includes('<br>') && !bodyTemplate.includes('</div>')) {
+                bodyTemplate = bodyTemplate.replace(/\n/g, '<br>');
+            }
+
+            const delay = parseInt(settingDelay.value) || 2;
+            const draftMode = settingDraftMode.checked ? '$true' : '$false';
+
+            // Preparar JSON de contactos con los nombres de columnas originales para el reemplazo de variables
+            const cleanContacts = excelData.map(row => {
+                const contactObj = {};
+                
+                // Incluir todas las columnas del Excel con sus nombres originales
+                columns.forEach(col => {
+                    contactObj[col] = row[col] !== undefined ? row[col] : '';
+                });
+                
+                // Campo interno especial para la dirección del destinatario
+                contactObj['__EmailDestinatario__'] = row[colEmail.value] || '';
+                return contactObj;
+            });
+
+            const contactsJson = JSON.stringify(cleanContacts, null, 2);
+
+            // Generar script final (usando UTF-8 para PowerShell)
+            const psScript = `# =========================================================================
+#   SCRIPT AUTO-GENERADO POR MAILMERGE STUDIO
+#   Fecha de generación: ${new Date().toLocaleString()}
+#   Destinatarios: ${cleanContacts.length}
+# =========================================================================
+
+# --- CONFIGURACIÓN DE ENVÍO ---
+\$asuntoPlantilla = @'
+${subjectTemplate}
+'@
+
+\$cuerpoPlantilla = @'
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; }
+</style>
+</head>
+<body>
+${bodyTemplate}
+</body>
+</html>
+'@
+
+\$segundosDeEspera = ${delay}
+\$modoBorrador = ${draftMode}
+
+# --- LISTA DE CONTACTOS ---
+\$contactosJson = @'
+${contactsJson}
+'@
+
+# --- ALGORITMO DE ENVÍO ---
+Clear-Host
+Write-Host "=========================================================================" -ForegroundColor Cyan
+Write-Host "                    MAILMERGE STUDIO - OUTLOOK SCRIPT                    " -ForegroundColor Cyan
+Write-Host "=========================================================================" -ForegroundColor Cyan
+Write-Host " Destinatarios cargados: \$(\$contactosJson | ConvertFrom-Json | Measure-Object).Count" -ForegroundColor Yellow
+Write-Host " Modo Borrador Seguro  : \$modoBorrador" -ForegroundColor Yellow
+Write-Host " Pausa entre envíos    : \$segundosDeEspera segundos" -ForegroundColor Yellow
+Write-Host "=========================================================================" -ForegroundColor Cyan
+Write-Host ""
+
+\$confirmacion = Read-Host "¿Deseas iniciar el procesamiento de correos? (Escribe S para Sí, o N para Cancelar)"
+if (\$confirmacion -ne "S" -and \$confirmacion -ne "s") {
+    Write-Host "Operación cancelada por el usuario." -ForegroundColor Red
+    Read-Host "Presione Enter para salir..."
+    exit
+}
+
+# Cargar JSON de contactos
+\$contactos = ConvertFrom-Json \$contactosJson
+
+# Inicializar conexión local de Outlook Desktop
+Write-Host "Abriendo conexión con Outlook local..." -ForegroundColor Cyan
+try {
+    \$outlook = New-Object -ComObject Outlook.Application
+} catch {
+    Write-Host "[ERROR] No se pudo comunicar con Outlook de escritorio." -ForegroundColor Red
+    Write-Host "Asegúrate de que la aplicación Outlook clásica esté abierta y configurada en tu PC." -ForegroundColor Yellow
+    Read-Host "Presiona Enter para salir..."
+    exit
+}
+
+\$total = \$contactos.Count
+\$contador = 0
+
+Write-Host "Iniciando procesamiento..." -ForegroundColor Green
+Write-Host ""
+
+foreach (\$c in \$contactos) {
+    \$email = \$c.__EmailDestinatario__
+    
+    if (-not \$email -or \$email -eq "") {
+        Write-Host "Advertencia: Fila vacía o sin dirección de email válida. Omitiendo..." -ForegroundColor Yellow
+        continue
+    }
+
+    \$asunto = \$asuntoPlantilla
+    \$cuerpo = \$cuerpoPlantilla
+
+    # Reemplazar variables dinámicamente según las propiedades del objeto de contacto
+    foreach (\$prop in \$c.PSObject.Properties) {
+        \$key = \$prop.Name
+        if (\$key -eq "__EmailDestinatario__") { continue }
+        \$val = if (\$prop.Value -eq \$null) { "" } else { \$prop.Value.ToString() }
+        
+        \$asunto = \$asunto.Replace("{{\$key}}", \$val)
+        \$cuerpo = \$cuerpo.Replace("{{\$key}}", \$val)
+    }
+
+    try {
+        # Crear item de correo en Outlook
+        \$mail = \$outlook.CreateItem(0)
+        \$mail.To = \$email
+        \$mail.Subject = \$asunto
+        \$mail.HTMLBody = \$cuerpo
+        
+        # Enviar o Guardar según configuración
+        if (\$modoBorrador) {
+            \$mail.Save()
+            Write-Host "[\$(\$contador+1)/\$total] Borrador guardado para: \$email" -ForegroundColor Gray
+        } else {
+            \$mail.Send()
+            Write-Host "[\$(\$contador+1)/\$total] Correo ENVIADO con éxito a: \$email" -ForegroundColor Green
+        }
+        \$contador++
+    } catch {
+        Write-Host "[\$(\$contador+1)/\$total] [ERROR] Falló el envío a \$email: \$_" -ForegroundColor Red
+    }
+
+    # Delay de seguridad entre envíos
+    if (\$contador -lt \$total) {
+        Start-Sleep -Seconds \$segundosDeEspera
+    }
+}
+
+Write-Host ""
+Write-Host "=========================================================================" -ForegroundColor Green
+Write-Host " PROCESO COMPLETADO EXCELENTEMENTE" -ForegroundColor Green
+Write-Host " Se procesaron un total de \$contador correos exitosamente." -ForegroundColor Green
+Write-Host "=========================================================================" -ForegroundColor Green
+Write-Host ""
+Read-Host "Presione Enter para cerrar esta ventana..."
+`;
+
+            return psScript;
+        }
+
+        // Regenerar el bloque de código visualizado
+        function regenerateScript() {
+            if (!excelData.length) return;
+            const code = generatePowerShellCode();
+            codeBlock.textContent = code;
+        }
+
+        // Copiar el código del script al portapapeles
+        function copyScriptCode() {
+            const code = generatePowerShellCode();
+            navigator.clipboard.writeText(code).then(() => {
+                showToast('¡Código copiado al portapapeles!');
+            }).catch(err => {
+                showToast('Error al copiar el código', true);
+            });
+        }
+
+        // Descargar el script como archivo .ps1 en UTF-8 con BOM (muy importante para PowerShell y acentos)
+        function downloadPowerShellScript() {
+            const code = generatePowerShellCode();
+            
+            // UTF-8 con BOM para que PowerShell lee bien los caracteres españoles (acentos, ñ)
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const blob = new Blob([bom, code], { type: 'text/plain;charset=utf-8' });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'EnviarComunicadoOutlook.ps1';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Script "EnviarComunicadoOutlook.ps1" descargado');
+        }
+
+        // Mostrar notificaciones Toast
+        function showToast(text, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toastText');
+            
+            toastText.textContent = text;
+            
+            if (isError) {
+                toast.style.borderColor = 'var(--danger)';
+                toast.querySelector('svg').style.stroke = 'var(--danger)';
+            } else {
+                toast.style.borderColor = 'var(--primary)';
+                toast.querySelector('svg').style.stroke = 'var(--success)';
+            }
+
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- SISTEMA DE ENVÍO AUTOMÁTICO LOCAL ---
+        function checkLocalServer() {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '3000';
+            if (isLocal) {
+                document.getElementById('localServerCard').style.display = 'block';
+            } else {
+                // Probar si el servidor está encendido en segundo plano en localhost:3000
+                fetch('http://localhost:3000/api/send', { method: 'OPTIONS' })
+                    .then(() => {
+                        document.getElementById('localServerCard').style.display = 'block';
+                    })
+                    .catch(() => {
+                        // Dejar oculto si el servidor no está respondiendo
+                    });
+            }
+        }
+        checkLocalServer();
+
+        let abortController = null;
+
+        async function startLocalSending() {
+            if (!excelData.length) {
+                showToast('No hay datos de contactos cargados', true);
+                return;
+            }
+
+            const confirmEnvio = confirm(`¿Estás seguro de que deseas iniciar el envío automático a ${excelData.length} destinatarios?`);
+            if (!confirmEnvio) return;
+
+            const btnSend = document.getElementById('btnLocalSend');
+            const btnCancel = document.getElementById('btnLocalCancel');
+            const progressContainer = document.getElementById('localProgressContainer');
+            const consoleDiv = document.getElementById('localConsole');
+            const progressBar = document.getElementById('localProgressBar');
+            const progressText = document.getElementById('localProgressText');
+            const progressStats = document.getElementById('localProgressStats');
+
+            // Preparar UI
+            btnSend.disabled = true;
+            btnSend.textContent = '⏳ Enviando...';
+            btnCancel.style.display = 'inline-flex';
+            progressContainer.style.display = 'block';
+            consoleDiv.style.display = 'block';
+            consoleDiv.innerHTML = '<div style="color: var(--primary); margin-bottom: 0.4rem; font-weight: 600;">> Conectando con el servidor local...</div>';
+            progressBar.style.width = '0%';
+            progressText.textContent = 'Iniciando envío...';
+            progressStats.textContent = `0 / ${excelData.length}`;
+
+            // Bloquear pestañas
+            document.querySelectorAll('.step-tab').forEach(tab => tab.classList.add('btn-disabled'));
+
+            // Preparar payload
+            const payload = {
+                contacts: excelData.map(row => {
+                    const contactObj = {};
+                    columns.forEach(col => {
+                        contactObj[col] = row[col] !== undefined ? row[col] : '';
+                    });
+                    contactObj['__EmailDestinatario__'] = row[colEmail.value] || '';
+                    return contactObj;
+                }),
+                subject: emailSubject.value,
+                body: emailBody.value,
+                delay: parseInt(settingDelay.value) || 2,
+                draftMode: settingDraftMode.checked
+            };
+
+            abortController = new AbortController();
+
+            try {
+                const endpoint = (window.location.protocol === 'file:') ? 'http://localhost:3000/api/send' : '/api/send';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: abortController.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.statusText}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Mantener línea incompleta
+
+                    for (const line of lines) {
+                        if (line.trim() === '') continue;
+                        try {
+                            const data = JSON.parse(line);
+                            handleSendProgress(data);
+                        } catch (e) {
+                            appendLog(`[Sistema] ${line}`);
+                        }
+                    }
+                }
+
+                // Procesar remanente si existiera
+                if (buffer.trim()) {
+                    try {
+                        const data = JSON.parse(buffer);
+                        handleSendProgress(data);
+                    } catch (e) {
+                        appendLog(`[Sistema] ${buffer}`);
+                    }
+                }
+
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    appendLog('<span style="color: var(--warning)">[CANCELADO] Envío interrumpido por el usuario.</span>');
+                    showToast('Envío cancelado', true);
+                } else {
+                    appendLog(`<span style="color: var(--danger)">[ERROR] ${err.message}</span>`);
+                    showToast(err.message, true);
+                }
+            } finally {
+                resetLocalSendingUI();
+            }
+        }
+
+        function cancelLocalSending() {
+            if (abortController) {
+                abortController.abort();
+            }
+        }
+
+        function resetLocalSendingUI() {
+            const btnSend = document.getElementById('btnLocalSend');
+            const btnCancel = document.getElementById('btnLocalCancel');
+            
+            btnSend.disabled = false;
+            btnSend.innerHTML = '🚀 Iniciar Envío Automático';
+            btnCancel.style.display = 'none';
+
+            // Desbloquear pestañas anteriores (Paso 1 y Paso 2 están siempre listos)
+            document.getElementById('tab-step1').classList.remove('btn-disabled');
+            document.getElementById('tab-step2').classList.remove('btn-disabled');
+            document.getElementById('tab-step3').classList.remove('btn-disabled');
+        }
+
+        function handleSendProgress(data) {
+            const progressBar = document.getElementById('localProgressBar');
+            const progressText = document.getElementById('localProgressText');
+            const progressStats = document.getElementById('localProgressStats');
+
+            if (data.type === 'progress') {
+                const pct = Math.round((data.index / data.total) * 100);
+                progressBar.style.width = pct + '%';
+                progressText.textContent = `Procesando... ${pct}%`;
+                progressStats.textContent = `${data.index} / ${data.total}`;
+                
+                const statusIcon = data.success ? '✓' : '✗';
+                const color = data.success ? 'var(--success)' : 'var(--danger)';
+                appendLog(`<span style="color: ${color}">${statusIcon} [${data.index}/${data.total}] ${data.email}: ${data.message}</span>`);
+            } else if (data.type === 'error') {
+                appendLog(`<span style="color: var(--danger)">[ERROR] ${data.message}</span>`);
+                showToast(data.message, true);
+            } else if (data.type === 'done') {
+                progressBar.style.width = '100%';
+                progressText.textContent = '¡Envío Completado!';
+                appendLog(`<span style="color: var(--success); font-weight: 700;">>>> PROCESO FINALIZADO. Se procesaron ${data.total} correos.</span>`);
+                showToast('¡Envío masivo completado con éxito!');
+            } else if (data.type === 'log') {
+                appendLog(`<span style="color: var(--text-secondary)">[Consola] ${data.message}</span>`);
+            }
+        }
+
+        function appendLog(html) {
+            const consoleDiv = document.getElementById('localConsole');
+            const dateStr = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.style.marginBottom = '4px';
+            line.innerHTML = `<span style="color: rgba(255,255,255,0.3)">[${dateStr}]</span> ${html}`;
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
