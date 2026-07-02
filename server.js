@@ -274,4 +274,8 @@ Write-Output "STATUS: $($msg | ConvertTo-Json -Compress)"
 
 server.listen(PORT, () => {
   console.log(`Servidor local corriendo en http://localhost:${PORT}`);
+  // Abrir automáticamente el navegador por defecto en Windows
+  const { exec } = require('child_process');
+  exec('start http://localhost:' + PORT);
 });
+

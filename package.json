@@ -3,8 +3,15 @@
   "version": "1.0.0",
   "description": "Servidor local para MailMerge Studio",
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build-exe": "npx pkg . --targets node18-win-x64 --output MailMergeStudio.exe"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ]
+  }
 }
